@@ -1,7 +1,6 @@
 from pathlib import Path
 import threading
 import tkinter as tk
-from tkinter import font as tkfont
 from tkinter import filedialog
 from tkinter import ttk
 import io
@@ -11,9 +10,6 @@ import webbrowser
 
 from core import utils, server
 from config import settings
-
-settings.MIZBAN_SHARED_DIR = "New Path"
-settings.save()
 
 
 def start_gui():
@@ -33,27 +29,24 @@ def start_gui():
     root.geometry("600x500")
 
     icon_path = Path(f"{Path().resolve()}/clients/frontend/favicon.ico")
-    # Set icon only on Windows and if file exists
     if sys.platform == "win32" and icon_path.exists():
         root.iconbitmap(str(icon_path))
 
-    title_font = tkfont.Font(family="Helvetica", size=16, weight="bold")
-    label_font = tkfont.Font(family="Helvetica", size=12)
-    mono_font = tkfont.Font(family="Courier", size=10)
+    style = ttk.Style()
+    style.configure("Title.TLabel", font=("Helvetica", 16, "bold"))
+    style.configure("Body.TLabel", font=("Helvetica", 12))
+    style.configure("Mono.TLabel", font=("Courier", 10))
 
-    ttk.Label(root, text="🚀  Mizban — LAN File Sharing Server", font=title_font).pack(pady=20)
+    ttk.Label(root, text="🚀  Mizban — LAN File Sharing Server", style="Title.TLabel").pack(pady=20)
 
-    default_dir = os.path.join(os.path.expanduser("~"), "Desktop")
-    UPLOAD_DIR = filedialog.askdirectory(initialdir=default_dir, title="Select Shared Folder")
-    if not UPLOAD_DIR:
-        UPLOAD_DIR = default_dir
-    mizban_shared_folder_path = os.path.join(UPLOAD_DIR, "MizbanSharedFolder")
-    os.makedirs(mizban_shared_folder_path, exist_ok=True)
+    # Folder Label
+    folder_label_var = tk.StringVar()
+    folder_label_var.set(f"📂  Shared folder : {settings.MIZBAN_SHARED_DIR}")
 
     folder_label = ttk.Label(
         root,
-        text=f"📂  Shared folder : {settings.MIZBAN_SHARED_DIR}",
-        font=label_font,
+        textvariable=folder_label_var,
+        style="Body.TLabel",
         foreground="blue",
         cursor="hand2",
         wraplength=550,
@@ -62,22 +55,33 @@ def start_gui():
     folder_label.pack(pady=5)
     folder_label.bind("<Button-1>", lambda e: open_folder(settings.MIZBAN_SHARED_DIR))
 
+    # URL Label
     url_label = ttk.Label(
         root,
         text=f"🌐 Access URL: {url}",
-        font=label_font,
+        style="Body.TLabel",
         foreground="blue",
         cursor="hand2"
     )
     url_label.pack(pady=5)
     url_label.bind("<Button-1>", lambda e: webbrowser.open(url))
 
-    ttk.Label(root, text="📱 QR code : Scan below to open in your mobile browser", font=label_font).pack(pady=(30, 0))
-    # QR code frame centered
+    # Folder selection Button
+    def choose_folder():
+        shared_folder = filedialog.askdirectory(title="Select Shared Folder")
+        if shared_folder:
+            settings.MIZBAN_SHARED_DIR = shared_folder
+            settings.save()
+            folder_label_var.set(f"📂  Shared folder : {settings.MIZBAN_SHARED_DIR}")
+
+    folder_button = ttk.Button(root, text="Select Shared Folder", command=choose_folder)
+    folder_button.pack(pady=10)
+
+    # QR code display
+    ttk.Label(root, text="📱 QR code : Scan below to open in your mobile browser", style="Body.TLabel").pack(pady=(30, 0))
     qr_frame = ttk.Frame(root)
     qr_frame.pack(fill="both", expand=True)
-
-    qr_label = ttk.Label(qr_frame, text=qr_ascii, font=mono_font, justify="center")
+    qr_label = ttk.Label(qr_frame, text=qr_ascii, style="Mono.TLabel", justify="center")
     qr_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def on_close():
